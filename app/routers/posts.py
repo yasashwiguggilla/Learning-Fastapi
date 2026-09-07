@@ -12,10 +12,8 @@ router = APIRouter(
 )
 
 
-@router.get(
-    "/",
-    response_model=list[schemas.PostOut]
-)
+# GET ALL POSTS
+@router.get("/", response_model=list[schemas.PostOut])
 def get_posts(
     db: Session = Depends(get_db),
     limit: int = 10,
@@ -29,7 +27,7 @@ def get_posts(
             models.Post.title.ilike(f"%{search}%")
         )
 
-    return (
+    posts = (
         query
         .order_by(models.Post.id.desc())
         .offset(skip)
@@ -37,11 +35,27 @@ def get_posts(
         .all()
     )
 
+    return posts
 
-@router.get(
-    "/{post_id}",
-    response_model=schemas.PostOut
-)
+
+# GET MY POSTS
+# IMPORTANT: This must come BEFORE /{post_id}
+@router.get("/mine", response_model=list[schemas.PostOut])
+def get_my_posts(
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user)
+):
+    posts = (
+        db.query(models.Post)
+        .filter(models.Post.owner_id == current_user.id)
+        .all()
+    )
+
+    return posts
+
+
+# GET ONE POST
+@router.get("/{post_id}", response_model=schemas.PostOut)
 def get_post(
     post_id: int,
     db: Session = Depends(get_db)
@@ -61,6 +75,7 @@ def get_post(
     return post
 
 
+# CREATE POST
 @router.post(
     "/",
     response_model=schemas.PostOut,
@@ -83,10 +98,8 @@ def create_post(
     return post
 
 
-@router.put(
-    "/{post_id}",
-    response_model=schemas.PostOut
-)
+# UPDATE POST
+@router.put("/{post_id}", response_model=schemas.PostOut)
 def update_post(
     post_id: int,
     post_in: schemas.PostUpdate,
@@ -120,6 +133,7 @@ def update_post(
     return post
 
 
+# DELETE POST
 @router.delete(
     "/{post_id}",
     status_code=status.HTTP_204_NO_CONTENT
@@ -150,17 +164,4 @@ def delete_post(
     db.delete(post)
     db.commit()
 
-
-@router.get(
-    "/mine",
-    response_model=list[schemas.PostOut]
-)
-def get_my_posts(
-    db: Session = Depends(get_db),
-    current_user: models.User = Depends(get_current_user)
-):
-    return (
-        db.query(models.Post)
-        .filter(models.Post.owner_id == current_user.id)
-        .all()
-    )
+    return None
