@@ -43,4 +43,4 @@ jobs:
           SECRET_KEY: test-secret-key
           ALGORITHM: HS256
         run: |
-          pytest -v
+          python -m pytest -v
